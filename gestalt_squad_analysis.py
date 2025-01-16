@@ -138,7 +138,7 @@ def compare_squads():
     armor_values = [0, 2, 4, 6]
     
     for armor in armor_values:
-        print(f"\n\n目标护甲: {armor}")
+        print("\n\n目标护甲: {}".format(armor))
         print("=" * 50)
         
         print("\n编队1: 5个裂解步枪鬼子 + 30个风暴突击步枪枪兵")
@@ -155,17 +155,20 @@ def compare_squads():
         
         print("\n输出对比总结:")
         print("-" * 50)
-        print(f"编队1 - 对普通目标: {squad1_normal:.1f} DPS")
-        print(f"编队1 - 对重甲目标: {squad1_heavy:.1f} DPS (有4点护甲减免)")
-        print(f"编队2 - 对普通目标: {squad2_normal:.1f} DPS")
-        print(f"编队2 - 对重甲目标: {squad2_heavy:.1f} DPS")
+        print("编队1 - 对普通目标: {:.1f} DPS".format(squad1_normal))
+        print("编队1 - 对重甲目标: {:.1f} DPS (有4点护甲减免)".format(squad1_heavy))
+        print("编队2 - 对普通目标: {:.1f} DPS".format(squad2_normal))
+        print("编队2 - 对重甲目标: {:.1f} DPS".format(squad2_heavy))
 
-def calculate_hellfire_ghost_dps(target_armor, is_mechanical=False):
+def calculate_hellfire_ghost_dps(target_armor: int, is_mechanical: bool = False) -> float:
     """计算炼狱火鬼子的DPS
     
     Args:
         target_armor: 目标护甲值
         is_mechanical: 是否为机械单位
+        
+    Returns:
+        DPS值
     """
     base_damage = 100.0 if is_mechanical else 60.0  # 对机械单位100伤害，普通单位60伤害
     attack_speed = 0.83  # 3级军衔的攻击速度
@@ -176,46 +179,52 @@ def calculate_hellfire_ghost_dps(target_armor, is_mechanical=False):
     return actual_damage / attack_speed
 
 def calculate_reaper_dps(target_armor: int, target_type: str = "普通") -> float:
-    # 基础伤害
-    base_min = 8
-    base_max = 18
+    """计算单个死神的DPS
     
-    # 3级攻防加成
-    base_min += 6
-    base_max += 6
-    
-    # 托什20%加成
-    base_min *= 1.2
-    base_max *= 1.2
-    
-    # 安全力场加成
-    base_min += 5
-    base_max += 5
-    
-    # 对轻甲单位伤害加成
+    Args:
+        target_armor: 目标护甲值
+        target_type: 目标类型（普通/轻甲）
+        
+    Returns:
+        DPS值
+    """
+    # 基础伤害部分（包含3级攻击升级）
     if target_type == "轻甲":
-        base_min *= 1.5
-        base_max *= 1.5
+        base_damage = 18  # 对轻甲的基础伤害
+    else:
+        base_damage = 8   # 对普通目标的基础伤害
     
-    # 双倍伤害
-    base_min *= 2
-    base_max *= 2
+    # 托什20%加成（作用在基础值上）
+    tosh_bonus = base_damage * 0.2
+    total_base = base_damage + tosh_bonus
     
-    # 计算平均伤害
-    avg_damage = (base_min + base_max) / 2
+    # 安全力场加成（+5点固定伤害）
+    total_damage = total_base + 5
+    
+    # 多重攻击（2次）
+    total_damage *= 2
     
     # 计算护甲减伤
     if target_armor > 0:
-        effective_damage = max(1, avg_damage - target_armor)
+        effective_damage = max(0.5, total_damage - target_armor)
     else:
-        effective_damage = avg_damage + abs(target_armor)  # 负护甲提供伤害加成
+        effective_damage = total_damage + abs(target_armor)  # 负护甲提供伤害加成
     
     # 攻击速度1.1秒
-    dps = effective_damage / 1.1
+    attack_speed = 1.1
+    dps = effective_damage / attack_speed
     
     return dps
 
 def calculate_reaper_squad_dps(target_armor: int) -> tuple[float, float]:
+    """计算死神编队的DPS
+    
+    Args:
+        target_armor: 目标护甲值
+        
+    Returns:
+        (对普通目标的DPS, 对轻甲目标的DPS)
+    """
     # 128个死神的DPS
     normal_dps = calculate_reaper_dps(target_armor, "普通") * 128
     light_dps = calculate_reaper_dps(target_armor, "轻甲") * 128
@@ -223,6 +232,7 @@ def calculate_reaper_squad_dps(target_armor: int) -> tuple[float, float]:
 
 def plot_dps_comparison():
     """绘制不同护甲值下的DPS对比图"""
+    # 准备数据
     armor_values = np.arange(0, 9, 1)  # 护甲范围0-8
     squad1_normal = []
     squad1_heavy = []
@@ -256,7 +266,7 @@ def plot_dps_comparison():
         reaper_light_dps.append(light)
 
     # 创建图表
-    fig, ax = plt.subplots(figsize=(12, 8))
+    _, ax = plt.subplots(figsize=(12, 8))
     
     # 设置背景网格
     ax.grid(True, linestyle='--', alpha=0.7)
@@ -304,11 +314,11 @@ def plot_dps_comparison():
     plt.subplots_adjust(right=0.8)
     
     # 保存图表
-    plt.savefig('格式塔零不同部队组合DPS对比.png', dpi=300, bbox_inches='tight')
+    plt.savefig('格式塔零和托什不同部队组合DPS对比.png', dpi=300, bbox_inches='tight')
     plt.close()
 
     # 绘制相对DPS变化图
-    fig, ax = plt.subplots(figsize=(12, 8))
+    _, ax = plt.subplots(figsize=(12, 8))
     
     # 设置背景网格
     ax.grid(True, linestyle='--', alpha=0.7)
@@ -321,6 +331,8 @@ def plot_dps_comparison():
     squad2_heavy_max = max(squad2_heavy)
     squad3_normal_max = max(squad3_normal)
     squad3_mechanical_max = max(squad3_mechanical)
+    reaper_normal_max = max(reaper_normal_dps)
+    reaper_light_max = max(reaper_light_dps)
 
     squad1_normal_relative = [x/squad1_normal_max * 100 for x in squad1_normal]
     squad1_heavy_relative = [x/squad1_heavy_max * 100 for x in squad1_heavy]
@@ -328,70 +340,98 @@ def plot_dps_comparison():
     squad2_heavy_relative = [x/squad2_heavy_max * 100 for x in squad2_heavy]
     squad3_normal_relative = [x/squad3_normal_max * 100 for x in squad3_normal]
     squad3_mechanical_relative = [x/squad3_mechanical_max * 100 for x in squad3_mechanical]
+    reaper_normal_relative = [x/reaper_normal_max * 100 for x in reaper_normal_dps]
+    reaper_light_relative = [x/reaper_light_max * 100 for x in reaper_light_dps]
 
-    # 绘制主要数据线
-    ax.plot(armor_values, squad1_normal_relative, '-', label='风暴裂解"5+30" vs普通目标\n(5裂解步枪鬼子+30风暴步枪枪兵)',
+    # 绘制相对DPS曲线
+    ax.plot(armor_values, squad1_normal_relative, '-', label='风暴裂解"5+30" vs普通目标', 
             color=BYTEDANCE_COLORS['blue'], linewidth=2.5, marker='o', markersize=6)
-    ax.plot(armor_values, squad1_heavy_relative, '--', label='风暴裂解"5+30" vs重甲目标',
+    ax.plot(armor_values, squad1_heavy_relative, '--', label='风暴裂解"5+30" vs重甲目标', 
             color=BYTEDANCE_COLORS['green'], linewidth=2.5, marker='s', markersize=6)
-    ax.plot(armor_values, squad2_normal_relative, '-', label='7枪重型激光炮 vs普通目标\n(35重型激光炮枪兵)',
+    ax.plot(armor_values, squad2_normal_relative, '-', label='7枪重型激光炮 vs普通目标', 
             color=BYTEDANCE_COLORS['yellow'], linewidth=2.5, marker='^', markersize=6)
-    ax.plot(armor_values, squad2_heavy_relative, '--', label='7枪重型激光炮 vs重甲目标',
+    ax.plot(armor_values, squad2_heavy_relative, '--', label='7枪重型激光炮 vs重甲目标', 
             color=BYTEDANCE_COLORS['red'], linewidth=2.5, marker='D', markersize=6)
-    ax.plot(armor_values, squad3_normal_relative, '-', label='7鬼炼狱火 vs普通目标\n(35炼狱火鬼兵)',
+    ax.plot(armor_values, squad3_normal_relative, '-', label='7鬼炼狱火 vs普通目标', 
             color='purple', linewidth=2.5, marker='*', markersize=8)
-    ax.plot(armor_values, squad3_mechanical_relative, '--', label='7鬼炼狱火 vs机械目标',
+    ax.plot(armor_values, squad3_mechanical_relative, '--', label='7鬼炼狱火 vs机械目标', 
             color='darkviolet', linewidth=2.5, marker='p', markersize=8)
-    
+    ax.plot(armor_values, reaper_normal_relative, '-', label='托什死神船队 vs普通目标', 
+            color='brown', linewidth=2.5, marker='v', markersize=6)
+    ax.plot(armor_values, reaper_light_relative, '--', label='托什死神船队 vs轻甲目标', 
+            color='orange', linewidth=2.5, marker='>', markersize=6)
+
     # 设置坐标轴
     ax.set_xlabel('敌方单位护甲值 (0到8)', fontsize=12, fontweight='bold')
-    ax.set_ylabel('相对DPS变化 (%)', fontsize=12, fontweight='bold')
+    ax.set_ylabel('相对DPS (%)', fontsize=12, fontweight='bold')
+    ax.set_ylim(0, 105)  # 设置y轴范围，留出一些空间显示标签
     
     # 设置刻度
     ax.tick_params(axis='both', which='major', labelsize=10)
     
     # 添加标题
-    ax.set_title('格式塔零不同部队组合在不同护甲下的相对DPS变化\n(以护甲0时为基准)', fontsize=14, fontweight='bold')
+    ax.set_title('格式塔零和托什不同部队组合在不同护甲下的相对DPS变化\n', fontsize=14, fontweight='bold')
     
     # 添加图例和说明
-    # 先添加说明文本框
-    ax.text(1.02, 0.98, '说明：\n- 相对DPS = (当前DPS/编队最大DPS) × 100%\n- 每个编队以自己的最大DPS为100%基准\n- 展示不同护甲下DPS的相对变化',
+    ax.text(1.02, 0.98, '说明：\n- 相对DPS = (当前DPS/最大DPS) × 100%\n- 每个编队以自己的最大DPS为基准\n- 展示不同护甲下DPS的相对变化',
             transform=ax.transAxes, fontsize=10, verticalalignment='top',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
-    # 在说明下方添加图例
     ax.legend(loc='center left', bbox_to_anchor=(1.02, 0.45), fontsize=10)
     
-    # 调整布局以适应说明和图例
+    # 调整布局
     plt.subplots_adjust(right=0.8)
     
     # 保存图表
-    plt.savefig('格式塔零不同部队组合相对DPS对比.png', dpi=300, bbox_inches='tight')
+    plt.savefig('格式塔零和托什不同部队组合相对DPS对比.png', dpi=300, bbox_inches='tight')
     plt.close()
 
-def calculate_ghost_dps(target_armor):
+def calculate_ghost_dps(target_armor: int) -> float:
     """计算裂解步枪鬼子的DPS
-    裂解步枪是固定伤害的法术伤害，不受护甲影响，只提供护甲减免效果"""
+    
+    Args:
+        target_armor: 目标护甲值
+        
+    Returns:
+        DPS值
+    """
     base_damage = 12.0  # 固定伤害
-    attack_speed = 0.58
-    return base_damage / attack_speed  # 直接返回固定DPS，不考虑护甲
+    attack_speed = 0.58  # 3级军衔攻速加成
+    return base_damage / attack_speed  # 裂解步枪是固定伤害，不受护甲影响
 
-def calculate_marine_dps(target_armor):
-    """计算风暴突击步枪枪兵的DPS"""
+def calculate_marine_dps(target_armor: int) -> float:
+    """计算风暴突击步枪枪兵的DPS
+    
+    Args:
+        target_armor: 目标护甲值
+        
+    Returns:
+        DPS值
+    """
     base_damage = 7.0  # 每发7伤害，每次射击2发
-    attack_speed = 0.20
-    shots_per_attack = 2
+    attack_speed = 0.20  # 3级军衔攻速加成
+    shots_per_attack = 2  # 每次射击2发
     effective_armor = target_armor - 4  # 受益于鬼子的护甲减免
+    
     if effective_armor >= 0:
         actual_damage = max(0.5, base_damage - effective_armor) * shots_per_attack
     else:
         actual_damage = (base_damage + abs(effective_armor)) * shots_per_attack
     return actual_damage / attack_speed
 
-def calculate_heavy_laser_dps(target_armor, is_heavy_target=False):
-    """计算重型激光炮枪兵的DPS"""
-    base_damage = 110.0 if is_heavy_target else 80.0
-    attack_speed = 2.07
+def calculate_heavy_laser_dps(target_armor: int, is_heavy_target: bool = False) -> float:
+    """计算重型激光炮枪兵的DPS
+    
+    Args:
+        target_armor: 目标护甲值
+        is_heavy_target: 是否为重甲目标
+        
+    Returns:
+        DPS值
+    """
+    base_damage = 110.0 if is_heavy_target else 80.0  # 对重甲伤害提升
+    attack_speed = 2.07  # 3级军衔攻速加成
+    
     if target_armor >= 0:
         actual_damage = max(0.5, base_damage - target_armor)
     else:
